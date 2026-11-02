@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>釣點潮汐通</title>
+<script src="tide_data.js"></script>
+<script src="sea_data.js"></script>
+<style>
+:root{--bg:#0b1d2a;--card:#11293a;--card2:#163447;--ink:#e8f1f6;--mute:#8fb0c3;--line:#24465c;--hi:#4fc3f7;--lo:#ffb74d;--big:#ef5350;--mid:#ffca28;--small:#66bb6a;--acc:#26c6da}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;font-size:15px;line-height:1.5}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between;margin-bottom:12px}
+h1{font-size:22px;margin:0;letter-spacing:1px}
+h1 span{color:var(--acc)}
+.tabs{display:flex;gap:6px;background:var(--card);padding:4px;border-radius:12px}
+.tabs button{background:none;border:0;color:var(--mute);padding:8px 14px;border-radius:9px;font-size:14px;cursor:pointer;font-family:inherit}
+.tabs button.on{background:var(--acc);color:#062330;font-weight:700}
+.datebar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--card);border-radius:14px;padding:12px 14px;margin-bottom:14px}
+.datebar button{background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:6px 12px;cursor:pointer;font-family:inherit;font-size:14px}
+.datebar input{background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:6px 10px;font-family:inherit;font-size:14px;color-scheme:dark}
+.daytitle{font-size:20px;font-weight:700;margin-right:auto}
+.lunar{color:var(--mute);font-size:14px;margin-left:8px;font-weight:400}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:700;color:#1b1b1b}
+.p大{background:var(--big);color:#fff}.p中{background:var(--mid)}.p小{background:var(--small)}.p長{background:#90a4ae}.p若{background:#b39ddb}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.card{background:var(--card);border-radius:16px;padding:14px 16px;border:1px solid var(--line)}
+.card h2{margin:0;font-size:18px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sub{color:var(--mute);font-size:12.5px;margin:2px 0 8px}
+.status{font-size:14px;margin:6px 0 4px;color:var(--acc);font-weight:600;min-height:21px}
+.ev{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.ev div{background:var(--card2);border-radius:10px;padding:8px 10px}
+.ev .t{font-size:12px;color:var(--mute)}
+.ev .row{display:flex;justify-content:space-between;font-variant-numeric:tabular-nums;font-size:16px;font-weight:600}
+.ev .row small{color:var(--mute);font-weight:400;font-size:12px;align-self:center}
+.hiT{color:var(--hi)}.loT{color:var(--lo)}
+.range{font-size:13px;color:var(--mute);margin-top:8px}
+.range b{color:var(--ink)}
+svg{width:100%;height:auto;display:block;margin-top:6px}
+.seg{display:inline-flex;background:var(--card2);border-radius:8px;padding:2px;margin-left:auto}
+.seg button{border:0;background:none;color:var(--mute);font-size:12px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit}
+.seg button.on{background:var(--line);color:var(--ink)}
+.nodata{color:var(--mute);font-size:14px;padding:14px 0}
+.warn{background:#3a2a10;border:1px solid #6d4c12;color:#ffe0a3;border-radius:10px;padding:8px 10px;font-size:12.5px;margin-top:8px}
+.note{color:var(--mute);font-size:12.5px;margin-top:18px;line-height:1.7}
+.note a{color:var(--acc)}
+/* query */
+.qbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.qbar button{border:2px solid transparent;border-radius:10px;padding:8px 16px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;opacity:.55}
+.qbar button.on{opacity:1;border-color:#fff}
+.qbar label{color:var(--mute);font-size:14px;display:flex;align-items:center;gap:4px;margin-left:8px}
+.qlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.qitem{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer}
+.qitem:hover{border-color:var(--acc)}
+.qitem .d{font-weight:700;font-size:16px}
+.qitem .d .we{color:var(--lo);font-size:13px;margin-left:4px}
+.qitem .l{color:var(--mute);font-size:13px}
+.qitem .x{font-size:12px;color:var(--mute);margin-top:4px;font-variant-numeric:tabular-nums}
+.grp{grid-column:1/-1;color:var(--acc);font-weight:700;margin-top:6px}
+/* table */
+.tblwrap{overflow-x:auto;background:var(--card);border-radius:14px;border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{color:var(--mute);font-weight:600;position:sticky;top:0;background:var(--card)}
+tr.today td{background:#173c52}
+tr:hover td{background:var(--card2);cursor:pointer}
+.locsel{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.locsel button{background:var(--card);color:var(--mute);border:1px solid var(--line);border-radius:9px;padding:6px 12px;cursor:pointer;font-family:inherit}
+.locsel button.on{background:var(--acc);color:#062330;font-weight:700;border-color:var(--acc)}
+.sea{margin-top:10px;background:var(--card2);border-radius:10px;padding:9px 10px}
+.sea .h{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mute);margin-bottom:4px}
+.sea .big{display:flex;gap:14px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.sea .big div{font-size:13px;color:var(--mute)}
+.sea .big b{font-size:17px;color:var(--ink);margin-right:2px}
+.arr{display:inline-block;font-size:13px;color:var(--acc)}
+.bars{display:flex;gap:2px;align-items:flex-end;height:34px;margin-top:6px}
+.bars span{flex:1;border-radius:2px 2px 0 0;min-height:2px;position:relative}
+.bars span.now{outline:2px solid #fff}
+.r0{background:#2e7d32;color:#fff}.r1{background:#f9a825;color:#1b1b1b}.r2{background:#ef6c00;color:#fff}.r3{background:#c62828;color:#fff}
+td.c0{background:rgba(46,125,50,.25)}td.c1{background:rgba(249,168,37,.25)}td.c2{background:rgba(239,108,0,.3)}td.c3{background:rgba(198,40,40,.35)}
+.legend{font-size:12.5px;color:var(--mute);margin:-4px 0 12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>🎣 釣點<span>潮汐通</span></h1>
+  <div class="tabs" id="tabs">
+    <button data-v="today" class="on">當日潮汐</button>
+    <button data-v="sea">浪況預報</button>
+    <button data-v="query">潮型查詢</button>
+    <button data-v="table">30 日總表</button>
+  </div>
+</header>
+
+<div class="legend" id="statusbar" style="margin:-4px 0 10px"></div>
+<section id="v-today">
+  <div class="datebar">
+    <div class="daytitle" id="dayTitle"></div>
+    <button id="prev">‹ 前一天</button>
+    <button id="todayBtn">今天</button>
+    <button id="next">後一天 ›</button>
+    <input type="date" id="datePick">
+  </div>
+  <div class="grid" id="cards"></div>
+</section>
+
+<section id="v-sea" hidden>
+  <div class="locsel" id="sealoc"></div>
+  <div class="legend" id="seasrc"></div>
+  <div class="tblwrap"><table id="seatbl"></table></div>
+  <div class="legend" style="margin-top:10px">評估（以岸釣、磯釣為準）：<span class="pill r0">適合</span> 浪高 &lt; 1 m 且風 &lt; 17 節　<span class="pill r1">注意</span> 浪高 1–1.5 m 或風 17–21 節　<span class="pill r2">不建議磯釣</span> 浪高 1.5–2.5 m 或風 22–27 節（6 級）　<span class="pill r3">危險</span> 浪高 ≥ 2.5 m 或風 ≥ 28 節（7 級）。船釣請以船家判斷為準。</div>
+</section>
+
+<section id="v-query" hidden>
+  <div class="qbar" id="qbar"></div>
+  <div class="legend" id="qlegend"></div>
+  <div class="qlist" id="qlist"></div>
+</section>
+
+<section id="v-table" hidden>
+  <div class="locsel" id="locsel"></div>
+  <div class="tblwrap"><table id="tbl"></table></div>
+</section>
+
+<div class="note">
+  <b>資料說明</b>：每日滿潮／乾潮為中央氣象署（CWA）未來 1 個月潮汐預報（F-A0021-001），涵蓋 <b id="rangeTxt"></b>；潮高為「海圖基準面」公分數（數字越小代表退得越乾），請以同一地點的潮差比較。
+  「民間潮名」（大／中／小／長／若潮）依農曆日期推算，任何日期都能查；「CWA 潮差」是氣象署依當地全年潮差排序的大／中／小分級，通常比農曆朔望晚 1–3 天。
+  天文潮預報不含天氣因素，東北季風、低氣壓可能讓實際水位差數十公分。11 月起東北季風季，北海岸請以浪況優先判斷；出發前請到
+  <a href="https://www.cwa.gov.tw/V8/C/M/tide.html">CWA 潮汐預報</a>與
+  <a href="https://www.cwa.gov.tw/V8/C/M/TownCoastal/TownCoastal_Map.html">鄉鎮沿海預報</a>確認。超出資料範圍的日期，可查
+  <a href="https://www.cwa.gov.tw/Data/service/notice/download/Publish_20251202155034.pdf">2026 潮汐表</a>、
+  <a href="https://www.cwa.gov.tw/Data/service/notice/download/Publish_20260903135440.pdf">2027 潮汐表</a>。
+  浪況：每次打開網頁即時抓 <a href="https://open-meteo.com/en/docs/marine-weather-api">Open-Meteo 海洋預報</a>（ECMWF、GFS 浪模式，與 Windguru 同源），沒網路時顯示上次更新程式存下的資料；澎湖可另點 <a href="https://www.windguru.cz/4873">Windguru</a> 對照。潮汐由「update_tides.py」每天自動向氣象署抓 30 天預報。風速單位為節（knots）。海巡報案電話 118。
+</div>
+</div>
+
+<script>
+const TD = window.TIDE_DATA || {tides:{}};
+const DATA = TD.tides || {};
+for(const k of ["beigan","magong","baisha","keelung","gongliao"]) if(!DATA[k]) DATA[k]={};
+const STATIONS = {
+  beigan:{name:"連江縣北竿鄉"}, magong:{name:"澎湖縣馬公市"}, baisha:{name:"澎湖縣白沙鄉"},
+  keelung:{name:"基隆市中正區（八斗子、碧砂）"}, gongliao:{name:"新北市貢寮區"}
+};
+const LOCS = [
+  {id:"beigan", name:"馬祖北竿", st:["beigan"], tip:"潮差全台最大，大潮 6 小時可漲落約 5–6 公尺，磯釣注意回漲斷後路。"},
+  {id:"penghu", name:"澎湖", st:["magong","baisha"], tip:"白沙、吉貝等北海潮差比馬公大約 1 公尺；七美、望安請另查。"},
+  {id:"north3", name:"北方三島", st:["keelung"], est:true, tip:"三島沒有每日預報，這裡用基隆中正區潮時估算，實際潮時、潮高會有誤差。三島不能自行登島，只能搭合法海釣船在周邊作釣。"},
+  {id:"kly", name:"基隆嶼", st:["keelung"], tip:"使用基隆中正區（八斗子、碧砂出港處）預報，距離約 5 公里，潮時接近。11 月至隔年 3 月不開放登島，只能船釣。"},
+  {id:"aodi", name:"澳底", st:["gongliao"], tip:"使用新北市貢寮區預報。北海岸潮差小，浪況比潮汐更重要；常出現一天只有一次明顯漲退。"}
+];
+let SEA = (window.SEA_DATA && window.SEA_DATA.sea) || {};
+let SEA_STATUS = window.SEA_DATA ? ("離線資料（"+window.SEA_DATA.updated+" 更新）") : "尚無浪況資料";
+const SEA_POINTS = {beigan_om:[26.25,120.03], penghu_om:[23.58,119.50], north3_om:[25.62,122.05], kly_om:[25.20,121.78], aodi_om:[25.06,121.94]};
+async function fetchSeaLive(){
+  const keys=Object.keys(SEA_POINTS); const lat=keys.map(k=>SEA_POINTS[k][0]).join(","), lon=keys.map(k=>SEA_POINTS[k][1]).join(",");
+  const q=`latitude=${lat}&longitude=${lon}&timezone=Asia%2FTaipei&forecast_days=10`;
+  const [w,m]=await Promise.all([
+    fetch(`https://marine-api.open-meteo.com/v1/marine?${q}&hourly=wave_height,wave_period,wave_direction`).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}),
+    fetch(`https://api.open-meteo.com/v1/forecast?${q}&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m&wind_speed_unit=kn`).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();})
+  ]);
+  const R=x=>x==null?null:Math.round(x), R1=x=>x==null?null:Math.round(x*10)/10;
+  const out={};
+  keys.forEach((k,i)=>{ const a=w[i].hourly, b=m[i].hourly; const rows=[];
+    for(let j=0;j<a.time.length;j+=3){ const bj=b.time.indexOf(a.time[j]);
+      rows.push([a.time[j].slice(0,13), R1(a.wave_height[j]), R(a.wave_period[j]), R(a.wave_direction[j]), bj<0?null:R(b.wind_speed_10m[bj]), bj<0?null:R(b.wind_gusts_10m[bj]), bj<0?null:R(b.wind_direction_10m[bj])]); }
+    out[k]=rows; });
+  return out;
+}
+const SEAKEY = {beigan:"beigan_om", penghu:"penghu_om", north3:"north3_om", kly:"kly_om", aodi:"aodi_om"};
+const SEASRC = {
+  beigan_om:"Open-Meteo 海洋預報（ECMWF WAM / GFS-Wave），北竿外海格點",
+  penghu_om:"Open-Meteo 海洋預報，澎湖西側外海格點",
+  north3_om:"Open-Meteo 海洋預報，彭佳嶼附近格點",
+  kly_om:"Open-Meteo 海洋預報，基隆嶼外海格點",
+  aodi_om:"Open-Meteo 海洋預報，澳底外海格點"
+};
+const WGLINK = "https://www.windguru.cz/4873";
+const DIR8 = ["北","東北","東","東南","南","西南","西","西北"];
+const dirTxt = d => d==null ? "—" : DIR8[Math.round(((d%360)+360)%360/45)%8];
+const arrow = d => d==null ? "" : `<span class="arr" style="transform:rotate(${(d+180)%360}deg)">↑</span>`;
+const BF=[1,4,7,11,17,22,28,34,41,48,56,64];
+const beaufort = kn => { let b=0; while(b<BF.length && kn>=BF[b]) b++; return b; };
+function risk(wh,ws){ let r=0; if(wh!=null){ if(wh>=2.5) r=3; else if(wh>=1.5) r=2; else if(wh>=1) r=1; }
+  if(ws!=null){ if(ws>=28) r=Math.max(r,3); else if(ws>=22) r=Math.max(r,2); else if(ws>=17) r=Math.max(r,1); } return r; }
+const RISK=["適合","注意","不建議磯釣","危險"];
+const RCOL=["#2e7d32","#f9a825","#ef6c00","#c62828"];
+function seaRows(key){ return (SEA[key]||[]).map(r=>({t:r[0], ts:new Date(r[0]+":00:00+08:00").getTime(), wh:r[1], wp:r[2], wvd:r[3], ws:r[4], gu:r[5], wd:r[6]})); }
+function seaDay(key,day){ return seaRows(key).filter(r=>r.t.startsWith(day)); }
+function seaBlock(locId,day,isToday){
+  const key=SEAKEY[locId]; const rows=seaDay(key,day);
+  if(!rows.length) return `<div class="sea"><div class="h"><span>🌊 浪況</span></div><div style="font-size:13px;color:var(--mute)">這一天沒有浪況預報（預報約 7–16 天）。</div></div>`;
+  let pick;
+  if(isToday){ const n=Date.now(); pick=seaRows(key).filter(r=>r.wh!=null).reduce((a,b)=>Math.abs(b.ts-n)<Math.abs(a.ts-n)?b:a); }
+  else { pick=rows.filter(r=>r.wh!=null).reduce((a,b)=>b.wh>a.wh?b:a, rows.find(r=>r.wh!=null)||rows[0]); }
+  const mx=Math.max(...rows.map(r=>r.wh||0)), wmx=Math.max(...rows.map(r=>r.ws||0));
+  const rk=risk(mx,wmx);
+  const scale=Math.max(3,mx);
+  const bars=rows.map(r=>`<span title="${r.t.slice(11)}時 浪 ${r.wh??"—"}m 風 ${r.ws}節" class="${r===pick?"now":""}" style="height:${r.wh==null?2:Math.max(6,r.wh/scale*100)}%;background:${RCOL[risk(r.wh,r.ws)]}"></span>`).join("");
+  return `<div class="sea"><div class="h"><span>🌊 ${isToday?"現在海況（"+pick.t.slice(11)+" 時）":"當日最大浪（"+pick.t.slice(11)+" 時）"}</span><span class="pill r${rk}">今日 ${RISK[rk]}</span></div>
+    <div class="big"><div><b>${pick.wh??"—"}</b>m 浪高</div><div><b>${pick.wp??"—"}</b>s 週期</div><div>${arrow(pick.wvd)} ${dirTxt(pick.wvd)}浪</div>
+    <div><b>${pick.ws}</b>節 ${dirTxt(pick.wd)}風 ${arrow(pick.wd)} <span style="font-size:12px">（${beaufort(pick.ws)} 級，陣風 ${pick.gu}）</span></div></div>
+    <div class="bars">${bars}</div>
+    <div style="font-size:11px;color:var(--mute);margin-top:3px">全天最大浪 ${mx.toFixed(1)} m · 最大風 ${wmx} 節 · Open-Meteo${locId==="penghu"?' · <a style="color:var(--acc)" href="'+WGLINK+'">Windguru</a>':""}</div></div>`;
+}
+const TZ = "Asia/Taipei";
+const WD = "日一二三四五六";
+const pad = n => String(n).padStart(2,"0");
+function ymd(dt){ // date in Taipei
+  const p = new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"}).format(dt);
+  return p;
+}
+function parseYmd(s){ const [y,m,d]=s.split("-").map(Number); return new Date(Date.UTC(y,m-1,d,4)); } // 12:00 Taipei
+function addDays(s,n){ const d=parseYmd(s); d.setUTCDate(d.getUTCDate()+n); return ymd(d); }
+function wd(s){ return parseYmd(s).getUTCDay(); }
+function fmtDay(s){ const [y,m,d]=s.split("-"); return `${+m}/${+d}（${WD[wd(s)]}）`; }
+
+// ---- 農曆 & 民間潮名 ----
+let lunarFmt=null; try{ lunarFmt=new Intl.DateTimeFormat("zh-TW-u-ca-chinese",{timeZone:TZ,month:"long",day:"numeric"}); }catch(e){}
+const CN="初一 初二 初三 初四 初五 初六 初七 初八 初九 初十 十一 十二 十三 十四 十五 十六 十七 十八 十九 二十 廿一 廿二 廿三 廿四 廿五 廿六 廿七 廿八 廿九 三十".split(" ");
+function lunar(s){
+  if(lunarFmt){ try{
+    const parts=lunarFmt.formatToParts(parseYmd(s));
+    const m=(parts.find(p=>p.type==="month")||{}).value||""; const d=+((parts.find(p=>p.type==="day")||{}).value);
+    if(d>=1&&d<=30) return {m:m.replace("冬月","十一月").replace("臘月","十二月").replace("正月","一月"), d};
+  }catch(e){} }
+  // 後備：以 2026/11/9 朔日推算（約 29.53 日）
+  const days=(parseYmd(s)-parseYmd("2026-11-09"))/864e5; const ph=((days%29.530589)+29.530589)%29.530589;
+  return {m:"", d:Math.floor(ph)+1};
+}
+function folkTide(d){
+  const k = d>15 ? d-15 : d; // 1..15
+  if([1,2,3,14,15].includes(k) || d===30) return "大潮";
+  if([4,5,6,12,13].includes(k)) return "中潮";
+  if([7,8,9].includes(k)) return "小潮";
+  if(k===10) return "長潮";
+  if(k===11) return "若潮";
+  return "中潮";
+}
+function lunarStr(s){ const l=lunar(s); return `農曆${l.m}${CN[l.d-1]||""}`; }
+
+// ---- 潮汐事件與曲線 ----
+function tsOf(day,hm){ const [h,m]=hm.split(":").map(Number); return parseYmd(day).getTime()+((h-12)*60+m)*6e4; }
+const TL={}; // station -> sorted events with ts
+for(const st in DATA){
+  const arr=[]; for(const day of Object.keys(DATA[st]).sort()){ for(const [t,hm,h] of DATA[st][day][0]) arr.push({t,ts:tsOf(day,hm),h,hm,day}); }
+  TL[st]=arr;
+}
+const ALLDAYS=[...new Set(Object.values(DATA).flatMap(o=>Object.keys(o)))].sort(); const FIRST=ALLDAYS[0]||ymd(new Date()), LAST=ALLDAYS[ALLDAYS.length-1]||ymd(new Date());
+function levelAt(st,ts){
+  const a=TL[st]; for(let i=0;i<a.length-1;i++){ if(a[i].ts<=ts&&ts<=a[i+1].ts){ const f=(ts-a[i].ts)/(a[i+1].ts-a[i].ts); return a[i].h+(a[i+1].h-a[i].h)*(1-Math.cos(Math.PI*f))/2; } }
+  return null;
+}
+function curve(st,day,showNow){
+  const W=320,H=96,L=4,R=4,T=8,B=18; const t0=parseYmd(day).getTime()-12*36e5, t1=t0+24*36e5;
+  const pts=[]; for(let i=0;i<=96;i++){ const ts=t0+i*15*6e4; const v=levelAt(st,ts); if(v!=null) pts.push([ts,v]); }
+  if(pts.length<2) return "";
+  const evs=TL[st].filter(e=>e.ts>=t0&&e.ts<t1);
+  const vals=pts.map(p=>p[1]).concat(evs.map(e=>e.h)); const mn=Math.min(...vals), mx=Math.max(...vals); const span=Math.max(mx-mn,1);
+  const x=ts=>L+(ts-t0)/(t1-t0)*(W-L-R), y=v=>T+(1-(v-mn)/span)*(H-T-B);
+  const path=pts.map((p,i)=>(i?"L":"M")+x(p[0]).toFixed(1)+","+y(p[1]).toFixed(1)).join("");
+  const area=path+`L${x(pts[pts.length-1][0]).toFixed(1)},${H-B}L${x(pts[0][0]).toFixed(1)},${H-B}Z`;
+  let g=""; for(const hr of [0,6,12,18,24]){ const xx=x(t0+hr*36e5); g+=`<line x1="${xx}" x2="${xx}" y1="${T}" y2="${H-B}" stroke="#24465c" stroke-width="1"/><text x="${Math.min(Math.max(xx,10),W-12)}" y="${H-4}" fill="#8fb0c3" font-size="10" text-anchor="middle">${pad(hr)}</text>`; }
+  let e=""; for(const ev of evs){ const c=ev.t==="H"?"#4fc3f7":"#ffb74d"; e+=`<circle cx="${x(ev.ts)}" cy="${y(ev.h)}" r="3.2" fill="${c}"/>`; }
+  let now=""; if(showNow){ const n=Date.now(); if(n>=t0&&n<t1){ const v=levelAt(st,n); now=`<line x1="${x(n)}" x2="${x(n)}" y1="${T-4}" y2="${H-B}" stroke="#fff" stroke-dasharray="3 3"/>`+(v!=null?`<circle cx="${x(n)}" cy="${y(v)}" r="4.5" fill="#fff" stroke="#26c6da" stroke-width="2"/>`:""); } }
+  return `<svg viewBox="0 0 ${W} ${H}" aria-label="潮位曲線"><path d="${area}" fill="rgba(38,198,218,.15)"/>${g}<path d="${path}" fill="none" stroke="#26c6da" stroke-width="2"/>${e}${now}</svg>`;
+}
+function statusNow(st){
+  const n=Date.now(); const a=TL[st]; const nx=a.find(e=>e.ts>n); const pv=[...a].reverse().find(e=>e.ts<=n);
+  if(!nx||!pv) return "";
+  const mins=Math.round((nx.ts-n)/6e4); const hh=Math.floor(mins/60), mm=mins%60;
+  const dir = nx.t==="H" ? "🌊 漲潮中" : "↘️ 退潮中";
+  return `${dir}，${nx.t==="H"?"滿潮":"乾潮"} ${nx.hm}${nx.day!==ymd(new Date())?"（明日）":""}，還有 ${hh?hh+" 小時 ":""}${mm} 分`;
+}
+
+// ---- 當日視圖 ----
+let cur=ymd(new Date()); const penghuSel={v:"magong"};
+function clampInfo(){}
+function renderToday(){
+  const l=lunar(cur); const ft=folkTide(l.d);
+  document.getElementById("dayTitle").innerHTML=`${fmtDay(cur)} <span class="pill p${ft[0]}">${ft}</span><span class="lunar">${lunarStr(cur)}</span>`;
+  document.getElementById("datePick").value=cur;
+  const isToday = cur===ymd(new Date());
+  let html="";
+  for(const loc of LOCS){
+    const st = loc.id==="penghu" ? penghuSel.v : loc.st[0];
+    const rec = DATA[st][cur];
+    let body="";
+    if(!rec){
+      body=`<div class="nodata">這一天超出已載入的預報範圍（${fmtDay(FIRST)}–${fmtDay(LAST)}）。<br>民間潮名：<b>${ft}</b>。請到 <a style="color:var(--acc)" href="https://www.cwa.gov.tw/V8/C/M/tide.html">CWA 潮汐預報</a> 查詢。</div>`;
+    } else {
+      const [evs,lab]=rec; const H=evs.filter(e=>e[0]==="H"), Lo=evs.filter(e=>e[0]==="L");
+      const col=(arr,cls,label)=>`<div><div class="t">${label}</div>${arr.length?arr.map(e=>`<div class="row"><span class="${cls}">${e[1]}</span><small>${e[2]} cm</small></div>`).join(""):'<div class="row"><small>無</small></div>'}</div>`;
+      const hs=evs.map(e=>e[2]); const rng=Math.max(...hs)-Math.min(...hs);
+      body=`${isToday?`<div class="status">${statusNow(st)}</div>`:""}
+        ${curve(st,cur,isToday)}
+        <div class="ev">${col(H,"hiT","▲ 滿潮")}${col(Lo,"loT","▼ 乾潮")}</div>
+        <div class="range">當日最大潮差 <b>${(rng/100).toFixed(2)} m</b>　·　CWA 潮差 <span class="pill p${lab}">${lab}</span></div>`;
+    }
+    const seg = loc.id==="penghu" ? `<span class="seg">${loc.st.map(s=>`<button data-ph="${s}" class="${s===st?"on":""}">${s==="magong"?"馬公":"白沙"}</button>`).join("")}</span>` : "";
+    html+=`<div class="card"><h2>${loc.name}${loc.est?' <span class="pill" style="background:#455a64;color:#fff">估算</span>':""}${seg}</h2>
+      <div class="sub">預報點：${STATIONS[st].name}</div>${body}${seaBlock(loc.id,cur,isToday)}
+      ${loc.est?`<div class="warn">${loc.tip}</div>`:`<div class="sub" style="margin-top:8px">${loc.tip}</div>`}</div>`;
+  }
+  document.getElementById("cards").innerHTML=html;
+  document.querySelectorAll("[data-ph]").forEach(b=>b.onclick=()=>{penghuSel.v=b.dataset.ph; renderToday();});
+}
+document.getElementById("prev").onclick=()=>{cur=addDays(cur,-1);renderToday();};
+document.getElementById("next").onclick=()=>{cur=addDays(cur,1);renderToday();};
+document.getElementById("todayBtn").onclick=()=>{cur=ymd(new Date());renderToday();};
+document.getElementById("datePick").onchange=e=>{ if(e.target.value){cur=e.target.value;renderToday();} };
+
+// ---- 潮型查詢 ----
+const KINDS=["大潮","中潮","小潮","長潮","若潮"]; let qk="大潮", qWeekend=false, qMode="folk";
+function renderQuery(){
+  const bar=document.getElementById("qbar");
+  bar.innerHTML=KINDS.map(k=>`<button class="p${k[0]} ${k===qk?"on":""}" data-k="${k}">${k}</button>`).join("")+
+    `<label><input type="checkbox" id="qwe" ${qWeekend?"checked":""}> 只看週末</label>
+     <label><select id="qmode" style="background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:4px"><option value="folk" ${qMode==="folk"?"selected":""}>依民間潮名（農曆，可查 4 個月）</option><option value="cwa" ${qMode==="cwa"?"selected":""}>依 CWA 潮差分級（30 天內）</option></select></label>`;
+  bar.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{qk=b.dataset.k;renderQuery();});
+  document.getElementById("qwe").onchange=e=>{qWeekend=e.target.checked;renderQuery();};
+  document.getElementById("qmode").onchange=e=>{qMode=e.target.value; if(qMode==="cwa"&&!["大潮","中潮","小潮"].includes(qk)) qk="大潮"; renderQuery();};
+  document.getElementById("qlegend").textContent = qMode==="folk"
+    ? "民間潮名：農曆初一至初三、十四至十八、廿九、三十為大潮；初七至初九、廿二至廿四為小潮；初十、廿五為長潮；十一、廿六為若潮；其餘為中潮。"
+    : "CWA 潮差分級：每個地點各自分級，下方列出至少一個釣點標示為該等級的日子，並註明是哪幾個地點。";
+  const start=ymd(new Date()); let html="", lastMonth="";
+  const n = qMode==="folk" ? 120 : 31;
+  for(let i=0;i<n;i++){
+    const s=addDays(start,i); const w=wd(s); if(qWeekend && w!==0 && w!==6) continue;
+    const l=lunar(s); const ft=folkTide(l.d); let match=false, extra="";
+    if(qMode==="folk"){ match = ft===qk; }
+    else { const tag=qk[0]; const hit=LOCS.filter(loc=>{const r=DATA[loc.id==="penghu"?"magong":loc.st[0]][s]; return r&&r[1]===tag;}); match=hit.length>0; extra=hit.map(x=>x.name).join("、"); }
+    if(!match) continue;
+    const m=s.slice(0,7); if(m!==lastMonth){ html+=`<div class="grp">${+m.slice(0,4)} 年 ${+m.slice(5)} 月</div>`; lastMonth=m; }
+    let x="";
+    const r=DATA.beigan[s];
+    if(r){ const rngs=LOCS.map(loc=>{const rr=DATA[loc.id==="penghu"?"magong":loc.st[0]][s]; if(!rr) return ""; const hs=rr[0].map(e=>e[2]); return `${loc.name} ${((Math.max(...hs)-Math.min(...hs))/100).toFixed(1)}m`;}); x=`潮差：${[rngs[0],rngs[1],rngs[3],rngs[4]].join(" · ")}`; }
+    else x="超出每日預報範圍，可查 CWA 潮汐表";
+    html+=`<div class="qitem" data-d="${s}"><div class="d">${fmtDay(s)}${(w===0||w===6)?'<span class="we">週末</span>':""}</div>
+      <div class="l">${lunarStr(s)} · 民間 ${ft}${extra?` · CWA「${qk[0]}」：${extra}`:""}</div><div class="x">${x}</div></div>`;
+  }
+  document.getElementById("qlist").innerHTML = html || '<div class="nodata">這段期間沒有符合的日期。</div>';
+  document.querySelectorAll(".qitem").forEach(el=>el.onclick=()=>{cur=el.dataset.d; show("today");});
+}
+
+// ---- 30 日總表 ----
+let tLoc="beigan";
+const TLOCS=[["beigan","馬祖北竿"],["magong","澎湖馬公"],["baisha","澎湖白沙"],["keelung","基隆嶼／北方三島（基隆中正區）"],["gongliao","澳底（貢寮區）"]];
+function renderTable(){
+  document.getElementById("locsel").innerHTML=TLOCS.map(([k,n])=>`<button data-l="${k}" class="${k===tLoc?"on":""}">${n}</button>`).join("");
+  document.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{tLoc=b.dataset.l;renderTable();});
+  const today=ymd(new Date());
+  let h="<tr><th>日期</th><th>農曆</th><th>民間潮名</th><th>CWA</th><th>滿潮</th><th>乾潮</th><th>最大潮差</th></tr>";
+  for(const s of ALLDAYS){
+    if(s<today) continue;
+    if(!DATA[tLoc][s]) continue; const [evs,lab]=DATA[tLoc][s]; const l=lunar(s); const ft=folkTide(l.d); const hs=evs.map(e=>e[2]);
+    const H=evs.filter(e=>e[0]==="H").map(e=>`${e[1]} <span style="color:var(--mute)">${e[2]}</span>`).join("　");
+    const Lo=evs.filter(e=>e[0]==="L").map(e=>`${e[1]} <span style="color:var(--mute)">${e[2]}</span>`).join("　");
+    h+=`<tr class="${s===today?"today":""}" data-d="${s}"><td>${fmtDay(s)}</td><td>${CN[l.d-1]||""}</td><td><span class="pill p${ft[0]}">${ft}</span></td><td><span class="pill p${lab}">${lab}</span></td><td class="hiT">${H}</td><td class="loT">${Lo}</td><td>${((Math.max(...hs)-Math.min(...hs))/100).toFixed(2)} m</td></tr>`;
+  }
+  const tbl=document.getElementById("tbl"); tbl.innerHTML=h;
+  tbl.querySelectorAll("tr[data-d]").forEach(tr=>tr.onclick=()=>{cur=tr.dataset.d; show("today");});
+}
+
+// ---- 浪況預報 ----
+let sLoc="penghu";
+function renderSea(){
+  document.getElementById("sealoc").innerHTML=LOCS.map(l=>`<button data-s="${l.id}" class="${l.id===sLoc?"on":""}">${l.name}</button>`).join("");
+  document.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{sLoc=b.dataset.s;renderSea();});
+  const key=SEAKEY[sLoc]; document.getElementById("seasrc").innerHTML="資料來源："+SEASRC[key]+"，"+SEA_STATUS+(sLoc==="penghu"?`（也可<a style="color:var(--acc)" href="${WGLINK}">打開 Windguru 對照</a>）`:"")+"。浪高為示性波高，近岸實際浪況受地形影響，常比外海預報小或大。";
+  const rows=seaRows(key); const days=[...new Set(rows.map(r=>r.t.slice(0,10)))];
+  const today=ymd(new Date());
+  let h="<tr><th>日期</th><th>民間潮名</th><th>評估</th><th>最大浪高</th><th>週期</th><th>主浪向</th><th>最大風速（陣風）</th><th>主風向</th><th>逐時浪高（m）</th></tr>";
+  for(const d of days){ if(d<today) continue;
+    const rr=rows.filter(r=>r.t.startsWith(d)&&r.wh!=null); if(!rr.length) continue;
+    const top=rr.reduce((a,b)=>b.wh>a.wh?b:a); const wtop=rr.reduce((a,b)=>b.ws>a.ws?b:a);
+    const rk=risk(top.wh,wtop.ws); const ft=folkTide(lunar(d).d);
+    const per=Math.round(rr.reduce((s,r)=>s+(r.wp||0),0)/rr.length);
+    const strip=rr.map(r=>`<span title="${r.t.slice(11)}時" style="display:inline-block;width:30px;text-align:center;border-radius:4px;margin-right:2px;background:${RCOL[risk(r.wh,r.ws)]}33">${r.wh.toFixed(1)}<br><small style="color:var(--mute)">${r.t.slice(11)}</small></span>`).join("");
+    h+=`<tr class="${d===today?"today":""}" data-d="${d}"><td>${fmtDay(d)}</td><td><span class="pill p${ft[0]}">${ft}</span></td><td><span class="pill r${rk}">${RISK[rk]}</span></td>
+      <td class="c${risk(top.wh,null)}"><b>${top.wh.toFixed(1)} m</b></td><td>${per} s</td><td>${arrow(top.wvd)} ${dirTxt(top.wvd)}</td>
+      <td class="c${risk(null,wtop.ws)}">${wtop.ws} 節（${wtop.gu}）${beaufort(wtop.ws)} 級</td><td>${arrow(wtop.wd)} ${dirTxt(wtop.wd)}</td><td style="font-size:12px;line-height:1.2">${strip}</td></tr>`;
+  }
+  const tb=document.getElementById("seatbl"); tb.innerHTML=h;
+  tb.querySelectorAll("tr[data-d]").forEach(tr=>tr.onclick=()=>{cur=tr.dataset.d; show("today");});
+}
+
+// ---- tabs ----
+function show(v){
+  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
+  for(const k of ["today","sea","query","table"]) document.getElementById("v-"+k).hidden = k!==v;
+  if(v==="today") renderToday(); if(v==="query") renderQuery(); if(v==="table") renderTable(); if(v==="sea") renderSea();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>show(b.dataset.v));
+document.getElementById("rangeTxt").textContent=`${fmtDay(FIRST)} 至 ${fmtDay(LAST)}`;
+function renderStatus(){ document.getElementById("statusbar").innerHTML=`潮汐資料：${TD.updated?TD.updated+" 更新":"尚未更新"}（${fmtDay(FIRST)}–${fmtDay(LAST)}）　·　浪況：${SEA_STATUS}`; }
+renderStatus();
+show("today");
+fetchSeaLive().then(s=>{ SEA=s; SEA_STATUS="即時（"+new Date().toLocaleTimeString("zh-TW",{timeZone:TZ,hour:"2-digit",minute:"2-digit",hour12:false})+" 抓取）"; renderStatus();
+  const v=[...document.querySelectorAll("#tabs button")].find(b=>b.classList.contains("on")).dataset.v; show(v);
+}).catch(e=>{ SEA_STATUS+="；即時抓取失敗，請確認網路"; renderStatus(); });
+setInterval(()=>{ if(!document.getElementById("v-today").hidden && cur===ymd(new Date())) renderToday(); }, 60000);
+</script>
+</body>
+</html>
