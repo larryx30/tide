@@ -1,0 +1,30 @@
+name: Update tides
+
+on:
+  schedule:
+    - cron: "0 21 * * *"   # 每天台灣時間 05:00
+  workflow_dispatch:        # 也可以在 Actions 頁面手動按 Run workflow
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - name: 抓最新潮汐與浪況
+        run: python update_tides.py
+        env:
+          CWA_API_KEY: ${{ secrets.CWA_API_KEY }}
+      - name: 存回 repo（網頁會自動更新）
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tide_data.js sea_data.js
+          git diff --cached --quiet || (git commit -m "Update tide data $(date -u +%F)" && git push)
