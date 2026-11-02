@@ -21,6 +21,7 @@ jobs:
         run: python update_tides.py
         env:
           CWA_API_KEY: ${{ secrets.CWA_API_KEY }}
+          TZ: Asia/Taipei
       - name: 存回 repo（網頁會自動更新）
         if: always()
         run: |
