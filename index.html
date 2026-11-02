@@ -24,6 +24,8 @@ h1 span{color:var(--acc)}
 .lunar{color:var(--mute);font-size:14px;margin-left:8px;font-weight:400}
 .pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:700;color:#1b1b1b}
 .p大{background:var(--big);color:#fff}.p中{background:var(--mid)}.p小{background:var(--small)}.p長{background:#90a4ae}.p若{background:#b39ddb}
+.grid.one{grid-template-columns:1fr;max-width:640px}
+.grid.one .card h2{font-size:21px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
 .card{background:var(--card);border-radius:16px;padding:14px 16px;border:1px solid var(--line)}
 .card h2{margin:0;font-size:18px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -118,7 +120,8 @@ td.c0{background:rgba(46,125,50,.25)}td.c1{background:rgba(249,168,37,.25)}td.c2
     <button id="next">後一天 ›</button>
     <input type="date" id="datePick">
   </div>
-  <div class="grid" id="cards"></div>
+  <div class="locsel" id="todayloc"></div>
+  <div class="grid one" id="cards"></div>
 </section>
 
 <section id="v-sea" hidden>
@@ -302,14 +305,18 @@ function statusNow(st){
 
 // ---- 當日視圖 ----
 let cur=ymd(new Date()); const penghuSel={v:"magong"};
+let todayLoc="beigan"; try{ const s=localStorage.getItem("tideTodayLoc"); if(s) todayLoc=s; }catch(e){}
 function clampInfo(){}
 function renderToday(){
   const l=lunar(cur); const ft=folkTide(l.d);
   document.getElementById("dayTitle").innerHTML=`${fmtDay(cur)} <span class="pill p${ft[0]}">${ft}</span><span class="lunar">${lunarStr(cur)}</span>`;
   document.getElementById("datePick").value=cur;
   const isToday = cur===ymd(new Date());
+  if(!LOCS.some(l=>l.id===todayLoc)) todayLoc=LOCS[0].id;
+  document.getElementById("todayloc").innerHTML=LOCS.map(l=>`<button data-tl="${l.id}" class="${l.id===todayLoc?"on":""}">${l.name}</button>`).join("");
+  document.querySelectorAll("[data-tl]").forEach(b=>b.onclick=()=>{ todayLoc=b.dataset.tl; try{localStorage.setItem("tideTodayLoc",todayLoc);}catch(e){} renderToday(); });
   let html="";
-  for(const loc of LOCS){
+  for(const loc of LOCS.filter(l=>l.id===todayLoc)){
     const st = loc.id==="penghu" ? penghuSel.v : loc.st[0];
     const rec = DATA[st][cur];
     let body="";
