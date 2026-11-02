@@ -79,6 +79,18 @@ tr:hover td{background:var(--card2);cursor:pointer}
 .bars span.now{outline:2px solid #fff}
 .r0{background:#2e7d32;color:#fff}.r1{background:#f9a825;color:#1b1b1b}.r2{background:#ef6c00;color:#fff}.r3{background:#c62828;color:#fff}
 td.c0{background:rgba(46,125,50,.25)}td.c1{background:rgba(249,168,37,.25)}td.c2{background:rgba(239,108,0,.3)}td.c3{background:rgba(198,40,40,.35)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal .wh{text-align:center;color:var(--mute);font-size:13px;padding:2px 0}
+.cal .d{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 7px;min-height:74px;cursor:pointer;position:relative}
+.cal .d.blank{background:none;border:0;cursor:default}
+.cal .d.today{outline:2px solid var(--acc)}
+.cal .d.dim{opacity:.35}
+.cal .d .n{font-weight:700;font-size:16px}
+.cal .d .n.we{color:var(--lo)}
+.cal .d .lu{font-size:11.5px;color:var(--mute)}
+.cal .d .pill{margin-top:4px;font-size:12px;padding:1px 7px}
+.cal .d .mo{position:absolute;top:5px;right:6px;font-size:13px}
+@media (max-width:560px){.cal{gap:3px}.cal .d{padding:4px 3px;min-height:62px}.cal .d .n{font-size:14px}.cal .d .pill{font-size:10.5px;padding:1px 4px}.cal .d .lu{font-size:10px}}
 .legend{font-size:12.5px;color:var(--mute);margin:-4px 0 12px}
 </style>
 </head>
@@ -91,6 +103,7 @@ td.c0{background:rgba(46,125,50,.25)}td.c1{background:rgba(249,168,37,.25)}td.c2
     <button data-v="sea">浪況預報</button>
     <button data-v="query">潮型查詢</button>
     <button data-v="table">30 日總表</button>
+    <button data-v="long">長期潮型</button>
   </div>
 </header>
 
@@ -117,6 +130,15 @@ td.c0{background:rgba(46,125,50,.25)}td.c1{background:rgba(249,168,37,.25)}td.c2
   <div class="qbar" id="qbar"></div>
   <div class="legend" id="qlegend"></div>
   <div class="qlist" id="qlist"></div>
+</section>
+
+<section id="v-long" hidden>
+  <div class="locsel" id="monsel"></div>
+  <div class="qbar" style="margin-bottom:8px"><label style="margin-left:0"><input type="checkbox" id="lwe"> 只標出週末</label></div>
+  <div id="longsum" class="legend" style="font-size:14px;color:var(--ink);margin:0 0 12px"></div>
+  <div class="cal" id="cal"></div>
+  <div class="legend" style="margin-top:12px">潮型依農曆推算（民間潮名），一年後的日期一樣準確，可以提早排行程。實際潮差最大的日子通常在初二至初四、十六至十九，比朔望晚 1–3 天。🌑 新月（初一）、🌕 滿月（十五）。各地每天的滿乾潮時刻，請查氣象署的
+  <a style="color:var(--acc)" href="https://www.cwa.gov.tw/Data/service/notice/download/Publish_20251202155034.pdf">2026 潮汐表</a>、<a style="color:var(--acc)" href="https://www.cwa.gov.tw/Data/service/notice/download/Publish_20260903135440.pdf">2027 潮汐表</a>。</div>
 </section>
 
 <section id="v-table" hidden>
@@ -387,11 +409,37 @@ function renderSea(){
   tb.querySelectorAll("tr[data-d]").forEach(tr=>tr.onclick=()=>{cur=tr.dataset.d; show("today");});
 }
 
+// ---- 長期潮型 ----
+let lMon=null, lWe=false;
+function monthList(){ const t=ymd(new Date()); let y=+t.slice(0,4), m=+t.slice(5,7); const out=[]; for(let i=0;i<12;i++){ out.push(`${y}-${pad(m)}`); m++; if(m>12){m=1;y++;} } return out; }
+function renderLong(){
+  const ms=monthList(); if(!lMon||!ms.includes(lMon)) lMon=ms[0];
+  document.getElementById("monsel").innerHTML=ms.map(m=>`<button data-m="${m}" class="${m===lMon?"on":""}">${m===ms[0]||m.endsWith("-01")?m.slice(0,4)+" 年 ":""}${+m.slice(5)} 月</button>`).join("");
+  document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{lMon=b.dataset.m;renderLong();});
+  const we=document.getElementById("lwe"); we.checked=lWe; we.onchange=e=>{lWe=e.target.checked;renderLong();};
+  const [y,m]=lMon.split("-").map(Number); const first=`${y}-${pad(m)}-01`; const nd=new Date(Date.UTC(y,m,0)).getUTCDate();
+  const today=ymd(new Date());
+  let h="一二三四五六日".split("").map(c=>`<div class="wh">${c}</div>`).join("");
+  const lead=(wd(first)+6)%7; for(let i=0;i<lead;i++) h+='<div class="d blank"></div>';
+  const groups={"大潮":[], "中潮":[], "小潮":[], "長潮":[], "若潮":[]}; const weBig=[];
+  for(let d=1; d<=nd; d++){
+    const s=`${y}-${pad(m)}-${pad(d)}`; const l=lunar(s); const ft=folkTide(l.d); const w=wd(s); const isWe=(w===0||w===6);
+    groups[ft].push(d); if(isWe && ft==="大潮") weBig.push(d);
+    const moon = l.d===1?"🌑":(l.d===15?"🌕":"");
+    const lu = l.d===1 ? (l.m||"初一") : CN[l.d-1];
+    h+=`<div class="d ${s===today?"today":""} ${lWe&&!isWe?"dim":""}" data-d="${s}"><div class="n ${isWe?"we":""}">${d}</div><span class="mo">${moon}</span><div class="lu">${lu}</div><span class="pill p${ft[0]}">${ft}</span></div>`;
+  }
+  document.getElementById("cal").innerHTML=h;
+  const rng=a=>{ const r=[]; for(let i=0;i<a.length;i++){ let j=i; while(j+1<a.length&&a[j+1]===a[j]+1) j++; r.push(i===j?`${m}/${a[i]}`:`${m}/${a[i]}–${a[j]}`); i=j; } return r.join("、")||"無"; };
+  document.getElementById("longsum").innerHTML=`<b>${y} 年 ${m} 月</b>　<span class="pill p大">大潮</span> ${rng(groups["大潮"])}　<span class="pill p小">小潮</span> ${rng(groups["小潮"])}<br><span style="color:var(--mute)">週末遇到大潮：${weBig.length?weBig.map(d=>`${m}/${d}（${WD[wd(`${y}-${pad(m)}-${pad(d)}`)]}）`).join("、"):"無"}</span>`;
+  document.querySelectorAll(".cal .d[data-d]").forEach(el=>el.onclick=()=>{cur=el.dataset.d; show("today");});
+}
+
 // ---- tabs ----
 function show(v){
   document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
-  for(const k of ["today","sea","query","table"]) document.getElementById("v-"+k).hidden = k!==v;
-  if(v==="today") renderToday(); if(v==="query") renderQuery(); if(v==="table") renderTable(); if(v==="sea") renderSea();
+  for(const k of ["today","sea","query","table","long"]) document.getElementById("v-"+k).hidden = k!==v;
+  if(v==="today") renderToday(); if(v==="query") renderQuery(); if(v==="table") renderTable(); if(v==="sea") renderSea(); if(v==="long") renderLong();
   window.scrollTo(0,0);
 }
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>show(b.dataset.v));
